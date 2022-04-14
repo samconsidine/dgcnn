@@ -17,11 +17,14 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from data import ModelNet40
-from model import PointNet, DGCNN
+from model import DGCNN
 import numpy as np
 from torch.utils.data import DataLoader
 from util import cal_loss, IOStream
 import sklearn.metrics as metrics
+
+import sys
+from causal_dataset import CausalDatasetDGCNN
 
 
 def _init_():
@@ -37,17 +40,22 @@ def _init_():
     os.system('cp data.py checkpoints' + '/' + args.exp_name + '/' + 'data.py.backup')
 
 def train(args, io):
-    train_loader = DataLoader(ModelNet40(partition='train', num_points=args.num_points), num_workers=8,
-                              batch_size=args.batch_size, shuffle=True, drop_last=True)
-    test_loader = DataLoader(ModelNet40(partition='test', num_points=args.num_points), num_workers=8,
-                             batch_size=args.test_batch_size, shuffle=True, drop_last=False)
+    if args.dataset == 'modelnet40':
+        train_loader = DataLoader(ModelNet40(partition='train', num_points=args.num_points), 
+                num_workers=8, batch_size=args.batch_size,
+                shuffle=True, drop_last=True)
+        test_loader = DataLoader(ModelNet40(partition='test', num_points=args.num_points), num_workers=8,
+            batch_size=args.test_batch_size, shuffle=True, drop_last=False)
+    elif args.dataset == 'causal':
+        train_loader = DataLoader(CausalDatasetDGCNN(1000), num_workers=8, 
+                batch_size=args.batch_size, shuffle=True, drop_last=True)
+        test_loader = DataLoader(CausalDatasetDGCNN(1000), num_workers=8,
+                batch_size=args.test_batch_size, shuffle=True, drop_last=False)
 
     device = torch.device("cuda" if args.cuda else "cpu")
 
     #Try to load models
-    if args.model == 'pointnet':
-        model = PointNet(args).to(device)
-    elif args.model == 'dgcnn':
+    if args.model == 'dgcnn':
         model = DGCNN(args).to(device)
     else:
         raise Exception("Not implemented")
@@ -82,7 +90,9 @@ def train(args, io):
             data, label = data.to(device), label.to(device).squeeze()
             data = data.permute(0, 2, 1)
             batch_size = data.size()[0]
+            print(batch_size)
             opt.zero_grad()
+            print(data)
             logits = model(data)
             loss = criterion(logits, label)
             loss.backward()
@@ -176,7 +186,7 @@ if __name__ == "__main__":
                         choices=['pointnet', 'dgcnn'],
                         help='Model to use, [pointnet, dgcnn]')
     parser.add_argument('--dataset', type=str, default='modelnet40', metavar='N',
-                        choices=['modelnet40'])
+                        choices=['modelnet40', 'causal'])
     parser.add_argument('--batch_size', type=int, default=32, metavar='batch_size',
                         help='Size of batch)')
     parser.add_argument('--test_batch_size', type=int, default=16, metavar='batch_size',

@@ -33,7 +33,7 @@ def get_graph_feature(x, k=20, idx=None):
     x = x.view(batch_size, -1, num_points)
     if idx is None:
         idx = knn(x, k=k)   # (batch_size, num_points, k)
-    device = torch.device('cuda')
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     idx_base = torch.arange(0, batch_size, device=device).view(-1, 1, 1)*num_points
 
@@ -97,7 +97,7 @@ class DGCNN(nn.Module):
         self.bn4 = nn.BatchNorm2d(256)
         self.bn5 = nn.BatchNorm1d(args.emb_dims)
 
-        self.conv1 = nn.Sequential(nn.Conv2d(6, 64, kernel_size=1, bias=False),
+        self.conv1 = nn.Sequential(nn.Conv2d(2, 64, kernel_size=1, bias=False),
                                    self.bn1,
                                    nn.LeakyReLU(negative_slope=0.2))
         self.conv2 = nn.Sequential(nn.Conv2d(64*2, 64, kernel_size=1, bias=False),

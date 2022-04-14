@@ -24,7 +24,7 @@ def download():
     if not os.path.exists(os.path.join(DATA_DIR, 'modelnet40_ply_hdf5_2048')):
         www = 'https://shapenet.cs.stanford.edu/media/modelnet40_ply_hdf5_2048.zip'
         zipfile = os.path.basename(www)
-        os.system('wget %s; unzip %s' % (www, zipfile))
+        os.system('wget %s --no-check-certificate; unzip %s' % (www, zipfile))
         os.system('mv %s %s' % (zipfile[:-4], DATA_DIR))
         os.system('rm %s' % (zipfile))
 
@@ -77,7 +77,6 @@ class ModelNet40(Dataset):
 
     def __len__(self):
         return self.data.shape[0]
-
 
 if __name__ == '__main__':
     train = ModelNet40(1024)
